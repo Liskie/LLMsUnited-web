@@ -9,10 +9,9 @@ interface Model {
 
 const models: Model[] = [
   {label: 'ChatGPT', value: 'gpt-3.5-turbo'},
-  {label: 'Model 2', value: 'model2'},
-  {label: 'Model 3', value: 'model3'},
-  {label: 'Model 4', value: 'model4'},
-  {label: 'Model 5', value: 'model5'},
+  {label: 'CPM', value: 'cpm-conv'},
+  {label: 'LLaMA', value: 'llama-7b'},
+  {label: 'Taoli', value: 'taoli-chatglm'},
 ];
 
 const selectedModel = ref<string>(models[0].value)
