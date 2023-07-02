@@ -31,4 +31,4 @@ export interface ModelConfig {
   usage?: string
 }
 
-export type ApiModel = 'ChatGPTAPI' | 'ChatGPTUnofficialProxyAPI' | undefined
+export type ApiModel = 'ChatGPTAPI' | 'ChatGPTUnofficialProxyAPI' | 'CPMAPI' | undefined

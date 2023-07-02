@@ -1,9 +1,9 @@
 {
-  "name": "chatgpt-web-service",
+  "name": "llms-united-web-service",
   "version": "1.0.0",
   "private": false,
-  "description": "ChatGPT Web Service",
-  "author": "ChenZhaoYu <chenzhaoyu1994@gmail.com>",
+  "description": "LLMs United Web Service",
+  "author": "YujieWang <wyj125869@126.com>",
   "keywords": [
     "chatgpt-web",
     "chatgpt",

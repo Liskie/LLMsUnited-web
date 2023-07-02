@@ -1,10 +1,12 @@
 import express from 'express'
 import type { RequestProps } from './types'
-import type { ChatMessage } from './chatgpt'
-import { chatConfig, chatReplyProcess, currentModel } from './chatgpt'
+import type { ChatMessage } from './llm/chatgpt'
+import { chatConfig, chatReplyProcess as chatReplyProcessChatGPT, currentModel } from './llm/chatgpt'
+import { chatReplyProcess as chatReplyProcessCPM } from './llm/cpm-conv'
 import { auth } from './middleware/auth'
 import { limiter } from './middleware/limiter'
 import { isNotEmptyString } from './utils/is'
+import type { Message, ModelParams } from './llm/cpm-conv/types'
 
 const app = express()
 const router = express.Router()
@@ -19,13 +21,13 @@ app.all('*', (_, res, next) => {
   next()
 })
 
-router.post('/chat-process', [auth, limiter], async (req, res) => {
+router.post('/chat-process/chatgpt', [auth, limiter], async (req, res) => {
   res.setHeader('Content-type', 'application/octet-stream')
 
   try {
     const { prompt, options = {}, systemMessage, temperature, top_p } = req.body as RequestProps
     let firstChunk = true
-    await chatReplyProcess({
+    await chatReplyProcessChatGPT({
       message: prompt,
       lastContext: options,
       process: (chat: ChatMessage) => {
@@ -35,6 +37,39 @@ router.post('/chat-process', [auth, limiter], async (req, res) => {
       systemMessage,
       temperature,
       top_p,
+    })
+  }
+  catch (error) {
+    res.write(JSON.stringify(error))
+  }
+  finally {
+    res.end()
+  }
+})
+
+router.post('/chat-process/cpm-conv', [auth, limiter], async (req, res) => {
+  res.setHeader('Content-type', 'application/octet-stream')
+
+  const modelParams: ModelParams = {
+    repetitionPenalty: 1.02,
+    ngramPenalty: 1.02,
+    temperature: 1.02,
+  }
+
+  try {
+    const { prompt, options = {}, systemMessage, temperature, top_p } = req.body as RequestProps
+    modelParams.temperature = temperature
+    const latestMessage: Message = {
+      role: 'USER',
+      content: prompt,
+    }
+    await chatReplyProcessCPM({
+      // message, maxLength, modelParam
+      messages: [latestMessage],
+      // lastContext: options,
+      maxLength: 4096,
+      // systemMessage,
+      modelParams,
     })
   }
   catch (error) {

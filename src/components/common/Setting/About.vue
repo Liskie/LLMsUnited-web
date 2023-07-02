@@ -45,13 +45,12 @@ onMounted(() => {
       <div class="p-2 space-y-2 rounded-md bg-neutral-100 dark:bg-neutral-700">
         <p>
           感谢您使用北京语言大学 iCALL 研究组研发的 Taoli 大模型，欢迎访问我们的
-          <a href="https://blcuicall.org/">
+          <a href="https://blcuicall.org/" class="text-blue-600 dark:text-blue-500">
             官方网站
           </a>
           了解更多信息！
         </p>
       </div>
-      <p>{{ $t("setting.timeout") }}：{{ config?.timeoutMs ?? '-' }}</p>
     </div>
   </NSpin>
 </template>

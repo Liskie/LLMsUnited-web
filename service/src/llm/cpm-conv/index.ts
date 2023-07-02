@@ -1,17 +1,13 @@
+import * as process from 'process'
+import crypto from 'crypto'
 import * as dotenv from 'dotenv'
 import 'isomorphic-fetch'
-import type { ChatGPTAPIOptions, ChatMessage, SendMessageOptions } from 'chatgpt'
-import { ChatGPTAPI } from 'chatgpt'
-import { SocksProxyAgent } from 'socks-proxy-agent'
-import httpsProxyAgent from 'https-proxy-agent'
-import fetch from 'node-fetch'
+import { v4 as uuidv4 } from 'uuid'
+import axios from 'axios/index'
 import { sendResponse } from '../../utils'
 import { isNotEmptyString } from '../../utils/is'
-import type { ApiModel, ChatContext, ModelConfig } from '../../types'
-import type { RequestOptions, SetProxyOptions, UsageResponse } from './types'
-
-const { HttpsProxyAgent } = httpsProxyAgent
-
+import type { ApiModel, ChatContext } from '../../types'
+import type { ModelParams, RequestOptions, SendMessageOptions, SetProxyOptions, UsageResponse } from './types'
 dotenv.config()
 
 const ErrorCodeMessage: Record<string, string> = {
@@ -24,81 +20,73 @@ const ErrorCodeMessage: Record<string, string> = {
 }
 
 const timeoutMs: number = !isNaN(+process.env.TIMEOUT_MS) ? +process.env.TIMEOUT_MS : 100 * 1000
-const disableDebug: boolean = process.env.OPENAI_API_DISABLE_DEBUG === 'true'
 
 let apiModel: ApiModel
-const model = isNotEmptyString(process.env.OPENAI_API_MODEL) ? process.env.OPENAI_API_MODEL : 'gpt-3.5-turbo'
+const model = isNotEmptyString(process.env.CPM_API_MODEL) ? process.env.CPM_API_MODEL : 'cpm-conv'
 
-if (!isNotEmptyString(process.env.OPENAI_API_KEY) && !isNotEmptyString(process.env.OPENAI_ACCESS_TOKEN))
-  throw new Error('Missing OPENAI_API_KEY or OPENAI_ACCESS_TOKEN environment variable')
+if (!isNotEmptyString(process.env.CPM_APP_ID) || !isNotEmptyString(process.env.CPM_APP_KEY))
+  throw new Error('Missing CPM_APP_ID or CPM_APP_KEY environment variable')
 
-let api: ChatGPTAPI
+function getMd5Base64(s: string): string {
+  if (s === null)
+    return null
 
-(async () => {
-  // More Info: https://github.com/transitive-bullshit/chatgpt-api
+  const md5 = crypto.createHash('md5').update(s, 'utf8').digest()
+  return Buffer.from(md5).toString('base64')
+}
 
-  if (isNotEmptyString(process.env.OPENAI_API_KEY)) {
-    const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL
+function getSignatureBase64(data: string, key: string): string {
+  const hmacObj = crypto.createHmac('sha256', key).update(data, 'utf8')
+  return Buffer.from(hmacObj.digest()).toString('base64')
+}
 
-    const options: ChatGPTAPIOptions = {
-      apiKey: process.env.OPENAI_API_KEY,
-      completionParams: { model },
-      debug: !disableDebug,
-    }
-
-    // increase max token limit if use gpt-4
-    if (model.toLowerCase().includes('gpt-4')) {
-      // if use 32k model
-      if (model.toLowerCase().includes('32k')) {
-        options.maxModelTokens = 32768
-        options.maxResponseTokens = 8192
-      }
-      else {
-        options.maxModelTokens = 8192
-        options.maxResponseTokens = 2048
-      }
-    }
-    else if (model.toLowerCase().includes('gpt-3.5')) {
-      if (model.toLowerCase().includes('16k')) {
-        options.maxModelTokens = 16384
-        options.maxResponseTokens = 4096
-      }
-    }
-
-    if (isNotEmptyString(OPENAI_API_BASE_URL))
-      options.apiBaseUrl = `${OPENAI_API_BASE_URL}/v1`
-
-    setupProxy(options)
-
-    api = new ChatGPTAPI({ ...options })
-    apiModel = 'ChatGPTAPI'
-  }
-})()
-
-async function chatReplyProcess(options: RequestOptions) {
-  const { message, lastContext, process, systemMessage, temperature, top_p } = options
+async function chatReplyProcess(requestOptions: RequestOptions) {
+  const { messages, maxLength, modelParams } = requestOptions
+  // const { repetitionPenalty, ngramPenalty, temperature } = modelParams
   try {
-    let options: SendMessageOptions = { timeoutMs }
-
-    if (apiModel === 'ChatGPTAPI') {
-      if (isNotEmptyString(systemMessage))
-        options.systemMessage = systemMessage
-      options.completionParams = { model, temperature, top_p }
+    const sendMessageOptions: SendMessageOptions = {
+      model,
+      actionType: 'conv',
+      messages,
+      maxLength, // 4096
+      modelParams,
     }
 
-    if (lastContext != null) {
-      if (apiModel === 'ChatGPTAPI')
-        options.parentMessageId = lastContext.parentMessageId
-      else
-        options = { ...lastContext }
+    const method = 'POST'
+    const accept = '*/*'
+    const contentType = 'application/json'
+    const timestamp = new Date().getTime()
+    const contentMd5 = getMd5Base64(JSON.stringify(sendMessageOptions))
+    const mode = 'Signature'
+    const nonce = uuidv4()
+    const urlQueries = ''
+
+    const sbuffer = [
+      method,
+      accept,
+      contentType,
+      timestamp.toString(),
+      contentMd5,
+      mode,
+      nonce,
+      urlQueries,
+    ].join('\n')
+    const signature = getSignatureBase64(sbuffer, process.env.CPM_APP_KEY)
+
+    const headers = {
+      'Content-Type': contentType,
+      'Accept': accept,
+      'X-Model-Best-Open-Ca-Time': timestamp.toString(),
+      'Content-MD5': contentMd5,
+      'X-Model-Best-Open-App-Id': process.env.CPM_APP_ID,
+      'X-Model-Best-Open-Ca-Mode': mode,
+      'X-Model-Best-Open-Ca-Nonce': nonce,
+      'X-Model-Best-Open-Ca-Signature': signature,
     }
 
-    const response = await api.sendMessage(message, {
-      ...options,
-      onProgress: (partialResponse) => {
-        process?.(partialResponse)
-      },
-    })
+    const response = await axios.post(process.env.CPM_API_URL,
+      sendMessageOptions,
+      { headers })
 
     return sendResponse({ type: 'Success', data: response })
   }
@@ -134,8 +122,6 @@ async function fetchUsage() {
 
   const options = {} as SetProxyOptions
 
-  setupProxy(options)
-
   try {
     // 获取已使用量
     const useResponse = await options.fetch(urlUsage, { headers })
@@ -161,52 +147,6 @@ function formatDate(): string[] {
   return [formattedFirstDay, formattedLastDay]
 }
 
-async function chatConfig() {
-  const usage = await fetchUsage()
-  const reverseProxy = process.env.API_REVERSE_PROXY ?? '-'
-  const httpsProxy = (process.env.HTTPS_PROXY || process.env.ALL_PROXY) ?? '-'
-  const socksProxy = (process.env.SOCKS_PROXY_HOST && process.env.SOCKS_PROXY_PORT)
-    ? (`${process.env.SOCKS_PROXY_HOST}:${process.env.SOCKS_PROXY_PORT}`)
-    : '-'
-  return sendResponse<ModelConfig>({
-    type: 'Success',
-    data: { apiModel, reverseProxy, timeoutMs, socksProxy, httpsProxy, usage },
-  })
-}
+export type { ChatContext }
 
-function setupProxy(options: SetProxyOptions) {
-  if (isNotEmptyString(process.env.SOCKS_PROXY_HOST) && isNotEmptyString(process.env.SOCKS_PROXY_PORT)) {
-    const agent = new SocksProxyAgent({
-      hostname: process.env.SOCKS_PROXY_HOST,
-      port: process.env.SOCKS_PROXY_PORT,
-      userId: isNotEmptyString(process.env.SOCKS_PROXY_USERNAME) ? process.env.SOCKS_PROXY_USERNAME : undefined,
-      password: isNotEmptyString(process.env.SOCKS_PROXY_PASSWORD) ? process.env.SOCKS_PROXY_PASSWORD : undefined,
-    })
-    options.fetch = (url, options) => {
-      return fetch(url, { agent, ...options })
-    }
-  }
-  else if (isNotEmptyString(process.env.HTTPS_PROXY) || isNotEmptyString(process.env.ALL_PROXY)) {
-    const httpsProxy = process.env.HTTPS_PROXY || process.env.ALL_PROXY
-    if (httpsProxy) {
-      const agent = new HttpsProxyAgent(httpsProxy)
-      options.fetch = (url, options) => {
-        return fetch(url, { agent, ...options })
-      }
-    }
-  }
-  else {
-    options.fetch = (url, options) => {
-      return fetch(url, { ...options })
-    }
-  }
-}
-
-function currentModel(): ApiModel {
-  return apiModel
-}
-
-export type { ChatContext, ChatMessage }
-
-export { chatReplyProcess, chatConfig, currentModel }
-
+export { chatReplyProcess }
