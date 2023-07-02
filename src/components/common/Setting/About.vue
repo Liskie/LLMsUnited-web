@@ -20,8 +20,6 @@ const loading = ref(false)
 
 const config = ref<ConfigState>()
 
-const isChatGPTAPI = computed<boolean>(() => !!authStore.isChatGPTAPI)
-
 async function fetchConfig() {
   try {
     loading.value = true
@@ -46,30 +44,14 @@ onMounted(() => {
       </h2>
       <div class="p-2 space-y-2 rounded-md bg-neutral-100 dark:bg-neutral-700">
         <p>
-          此项目开源于
-          <a
-            class="text-blue-600 dark:text-blue-500"
-            href="https://github.com/Chanzhaoyu/chatgpt-web"
-            target="_blank"
-          >
-            GitHub
+          感谢您使用北京语言大学 iCALL 研究组研发的 Taoli 大模型，欢迎访问我们的
+          <a href="https://blcuicall.org/">
+            官方网站
           </a>
-          ，免费且基于 MIT 协议，没有任何形式的付费行为！
-        </p>
-        <p>
-          如果你觉得此项目对你有帮助，请在 GitHub 帮我点个 Star 或者给予一点赞助，谢谢！
+          了解更多信息！
         </p>
       </div>
-      <p>{{ $t("setting.api") }}：{{ config?.apiModel ?? '-' }}</p>
-      <p v-if="isChatGPTAPI">
-        {{ $t("setting.monthlyUsage") }}：{{ config?.usage ?? '-' }}
-      </p>
-      <p v-if="!isChatGPTAPI">
-        {{ $t("setting.reverseProxy") }}：{{ config?.reverseProxy ?? '-' }}
-      </p>
       <p>{{ $t("setting.timeout") }}：{{ config?.timeoutMs ?? '-' }}</p>
-      <p>{{ $t("setting.socks") }}：{{ config?.socksProxy ?? '-' }}</p>
-      <p>{{ $t("setting.httpsProxy") }}：{{ config?.httpsProxy ?? '-' }}</p>
     </div>
   </NSpin>
 </template>

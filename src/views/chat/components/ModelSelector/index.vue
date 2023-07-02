@@ -10,7 +10,7 @@ interface Model {
 const models: Model[] = [
   {label: 'ChatGPT', value: 'gpt-3.5-turbo'},
   {label: 'CPM', value: 'cpm-conv'},
-  {label: 'LLaMA', value: 'llama-7b'},
+  // {label: 'LLaMA', value: 'llama-7b'},
   {label: 'Taoli', value: 'taoli-chatglm'},
 ];
 
