@@ -80,6 +80,32 @@ router.post('/chat-process/cpm-conv', [auth, limiter], async (req, res) => {
   }
 })
 
+router.post('/chat-process/taoli-chatglm', [auth, limiter], async (req, res) => {
+  res.setHeader('Content-type', 'application/octet-stream')
+
+  try {
+    const { prompt, options = {}, systemMessage, temperature, top_p } = req.body as RequestProps
+    let firstChunk = true
+    await chatReplyProcessChatGPT({
+      message: prompt,
+      lastContext: options,
+      process: (chat: ChatMessage) => {
+        res.write(firstChunk ? JSON.stringify(chat) : `\n${JSON.stringify(chat)}`)
+        firstChunk = false
+      },
+      systemMessage,
+      temperature,
+      top_p,
+    })
+  }
+  catch (error) {
+    res.write(JSON.stringify(error))
+  }
+  finally {
+    res.end()
+  }
+})
+
 router.post('/config', auth, async (req, res) => {
   try {
     const response = await chatConfig()

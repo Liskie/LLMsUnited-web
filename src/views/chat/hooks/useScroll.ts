@@ -35,6 +35,7 @@ export function useScroll(): ScrollReturn {
     }
   }
 
+  // @ts-ignore
   return {
     scrollRef,
     scrollToBottom,

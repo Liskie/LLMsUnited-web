@@ -3,7 +3,7 @@ import type {Ref} from 'vue'
 import {computed, onMounted, onUnmounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {storeToRefs} from 'pinia'
-import {NAutoComplete, NButton, NInput, useDialog, useMessage} from 'naive-ui'
+import {NAutoComplete, NButton, NInput, NSelect, useDialog, useMessage} from 'naive-ui'
 import html2canvas from 'html2canvas'
 import {Message} from './components'
 import {ModelSelector} from './components'
@@ -14,7 +14,7 @@ import HeaderComponent from './components/Header/index.vue'
 import {HoverButton, SvgIcon} from '@/components/common'
 import {useBasicLayout} from '@/hooks/useBasicLayout'
 import {useChatStore, usePromptStore} from '@/store'
-import {fetchChatAPIProcess} from '@/api'
+import {fetchChatAPIProcess, fetchCPMConvAPIProcess, fetchTaoliAPIProcess} from '@/api'
 import {t} from '@/locales'
 
 let controller = new AbortController()
@@ -40,6 +40,21 @@ const conversationList = computed(() => dataSources.value.filter(item => (!item.
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
+
+// const modelSelector = ref('')
+interface Model {
+  label: string;
+  value: string;
+}
+
+const models: Model[] = [
+  {label: 'ChatGPT', value: 'gpt-3.5-turbo'},
+  {label: 'CPM', value: 'cpm-conv'},
+  {label: 'Taoli', value: 'taoli-chatglm'},
+];
+
+const selectedModel = ref<string>(models[0].value)
+
 
 // 添加PromptStore
 const promptStore = usePromptStore()
@@ -67,6 +82,14 @@ async function onConversation() {
     return
 
   controller = new AbortController()
+
+  // Set target model of the conversation
+  if (dataSources.value.length === 0) {
+    console.log("selected:", selectedModel.value)
+    chatStore.setTargetModel(selectedModel.value)
+  }
+
+  console.log("saved:", chatStore.targetModel)
 
   // Add user's prompt into store.
   addChat(
@@ -114,49 +137,138 @@ async function onConversation() {
 
   try {
     let lastText = ''
+    // const
     // Send request to the AI API and fetch stream response.
     const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<Chat.ConversationResponse>({
-        prompt: message,
-        options,
-        signal: controller.signal,
-        onDownloadProgress: ({event}) => {
-          const xhr = event.target
-          const {responseText} = xhr
-          // Always process the final line
-          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
-          let chunk = responseText
-          if (lastIndex !== -1)
-            chunk = responseText.substring(lastIndex)
-          try {
-            const data = JSON.parse(chunk)
-            updateChat(
-                +uuid,
-                dataSources.value.length - 1,
-                {
-                  dateTime: new Date().toLocaleString(),
-                  text: lastText + (data.text ?? ''),
-                  inversion: false,
-                  error: false,
-                  loading: true,
-                  conversationOptions: {conversationId: data.conversationId, parentMessageId: data.id},
-                  requestOptions: {prompt: message, options: {...options}},
-                },
-            )
+      if (chatStore.targetModel === 'chatgpt') {
+        await fetchChatAPIProcess<Chat.ConversationResponse>({
+          prompt: message,
+          options,
+          signal: controller.signal,
+          onDownloadProgress: ({event}) => {
+            const xhr = event.target
+            const {responseText} = xhr
+            // Always process the final line
+            const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
+            let chunk = responseText
+            if (lastIndex !== -1)
+              chunk = responseText.substring(lastIndex)
+            try {
+              const data = JSON.parse(chunk)
+              updateChat(
+                  +uuid,
+                  dataSources.value.length - 1,
+                  {
+                    dateTime: new Date().toLocaleString(),
+                    text: lastText + (data.text ?? ''),
+                    inversion: false,
+                    error: false,
+                    loading: true,
+                    conversationOptions: {conversationId: data.conversationId, parentMessageId: data.id},
+                    requestOptions: {prompt: message, options: {...options}},
+                  },
+              )
 
-            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
-              options.parentMessageId = data.id
-              lastText = data.text
-              message = ''
-              return fetchChatAPIOnce()
+              if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
+                options.parentMessageId = data.id
+                lastText = data.text
+                message = ''
+                return fetchChatAPIOnce()
+              }
+
+              scrollToBottomIfAtBottom()
+            } catch (error) {
+              //
             }
+          },
+        })
+      } else if (chatStore.targetModel == 'cpm-conv') {
+        await fetchCPMConvAPIProcess<Chat.ConversationResponse>({
+          prompt: message,
+          options,
+          signal: controller.signal,
+          onDownloadProgress: ({event}) => {
+            const xhr = event.target
+            const {responseText} = xhr
+            // Always process the final line
+            const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
+            let chunk = responseText
+            if (lastIndex !== -1)
+              chunk = responseText.substring(lastIndex)
+            try {
+              const data = JSON.parse(chunk)
+              updateChat(
+                  +uuid,
+                  dataSources.value.length - 1,
+                  {
+                    dateTime: new Date().toLocaleString(),
+                    text: lastText + (data.text ?? ''),
+                    inversion: false,
+                    error: false,
+                    loading: true,
+                    conversationOptions: {conversationId: data.conversationId, parentMessageId: data.id},
+                    requestOptions: {prompt: message, options: {...options}},
+                  },
+              )
 
-            scrollToBottomIfAtBottom()
-          } catch (error) {
-            //
-          }
-        },
-      })
+              if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
+                options.parentMessageId = data.id
+                lastText = data.text
+                message = ''
+                return fetchChatAPIOnce()
+              }
+
+              scrollToBottomIfAtBottom()
+            } catch (error) {
+              //
+            }
+          },
+        })
+      } else if (chatStore.targetModel == 'taoli-chatglm') {
+        console.log('requesting taoli-chatglm')
+        await fetchTaoliAPIProcess<Chat.ConversationResponse>({
+          prompt: message,
+          options,
+          signal: controller.signal,
+          onDownloadProgress: ({event}) => {
+            const xhr = event.target
+            const {responseText} = xhr
+            // Always process the final line
+            const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
+            let chunk = responseText
+            if (lastIndex !== -1)
+              chunk = responseText.substring(lastIndex)
+            try {
+              const data = JSON.parse(chunk)
+              updateChat(
+                  +uuid,
+                  dataSources.value.length - 1,
+                  {
+                    dateTime: new Date().toLocaleString(),
+                    text: lastText + (data.text ?? ''),
+                    inversion: false,
+                    error: false,
+                    loading: true,
+                    conversationOptions: {conversationId: data.conversationId, parentMessageId: data.id},
+                    requestOptions: {prompt: message, options: {...options}},
+                  },
+              )
+
+              if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
+                options.parentMessageId = data.id
+                lastText = data.text
+                message = ''
+                return fetchChatAPIOnce()
+              }
+
+              scrollToBottomIfAtBottom()
+            } catch (error) {
+              //
+            }
+          },
+        })
+      }
+
       updateChatSome(+uuid, dataSources.value.length - 1, {loading: false})
     }
 
@@ -487,7 +599,13 @@ onUnmounted(() => {
             </div>
             <!-- Todo: Link the selector to the backend -->
             <div class="flex items-center justify-center mt-4 mb-4 text-center">
-              <ModelSelector/>
+<!--              <ModelSelector ref="modelSelector" />-->
+              <div class="flex flex-row w-1/3 text-center">
+                <NSelect v-model:value="selectedModel"
+                         placeholder="Select model"
+                         :options="models"
+                         size="large"/>
+              </div>
             </div>
           </template>
           <template v-else>

@@ -6,6 +6,7 @@ export function defaultState(): Chat.ChatState {
   const uuid = 1002
   return {
     active: uuid,
+    targetModel: 'ChatGPT',
     usingContext: true,
     history: [{ uuid, title: 'New Chat', isEdit: false }],
     chat: [{ uuid, data: [] }],

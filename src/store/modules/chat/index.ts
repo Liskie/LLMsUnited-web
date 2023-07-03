@@ -23,6 +23,10 @@ export const useChatStore = defineStore('chat-store', {
   },
 
   actions: {
+    setTargetModel(model: string) {
+      this.targetModel = model
+    },
+
     setUsingContext(context: boolean) {
       this.usingContext = context
       this.recordState()
