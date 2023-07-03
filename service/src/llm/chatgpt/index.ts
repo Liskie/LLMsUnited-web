@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv'
+// import * as process from 'process'
 import 'isomorphic-fetch'
 import type { ChatGPTAPIOptions, ChatMessage, SendMessageOptions } from 'chatgpt'
 import { ChatGPTAPI, ChatGPTUnofficialProxyAPI } from 'chatgpt'
@@ -9,7 +10,6 @@ import { sendResponse } from '../../utils'
 import { isNotEmptyString } from '../../utils/is'
 import type { ApiModel, ChatContext, ChatGPTUnofficialProxyAPIOptions, ModelConfig } from '../../types'
 import type { RequestOptions, SetProxyOptions, UsageResponse } from './types'
-import * as process from "process";
 
 const { HttpsProxyAgent } = httpsProxyAgent
 
@@ -42,9 +42,8 @@ let api: ChatGPTAPI | ChatGPTUnofficialProxyAPI
     const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL
 
     // Temporary hack for local development
-    if (process.env.OPENAI_API_KEY !== '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') {
-      process.env.OPENAI_API_KEY = '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'
-    }
+    // if (process.env.OPENAI_API_KEY !== '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')
+    process.env.OPENAI_API_KEY = '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'
 
     const options: ChatGPTAPIOptions = {
       apiKey: process.env.OPENAI_API_KEY,

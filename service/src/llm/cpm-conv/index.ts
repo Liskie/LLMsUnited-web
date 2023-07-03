@@ -3,11 +3,11 @@ import crypto from 'crypto'
 import * as dotenv from 'dotenv'
 import 'isomorphic-fetch'
 import { v4 as uuidv4 } from 'uuid'
-import axios from 'axios/index'
+import axios from 'axios'
 import { sendResponse } from '../../utils'
 import { isNotEmptyString } from '../../utils/is'
 import type { ApiModel, ChatContext } from '../../types'
-import type { ModelParams, RequestOptions, SendMessageOptions, SetProxyOptions, UsageResponse } from './types'
+import type { RequestOptions, SendMessageOptions, SetProxyOptions, UsageResponse } from './types'
 dotenv.config()
 
 const ErrorCodeMessage: Record<string, string> = {

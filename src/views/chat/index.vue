@@ -68,6 +68,7 @@ async function onConversation() {
 
   controller = new AbortController()
 
+  // Add user's prompt into store.
   addChat(
       +uuid,
       {
@@ -87,9 +88,16 @@ async function onConversation() {
   let options: Chat.ConversationRequest = {}
   const lastContext = conversationList.value[conversationList.value.length - 1]?.conversationOptions
 
+  console.log('dataSources:', dataSources.value)
+  for (const chatRound of dataSources.value) {
+    console.log(chatRound.inversion, chatRound.text)
+  }
+
+
   if (lastContext && usingContext.value)
     options = {...lastContext}
 
+  // Add an empty response from AI to show loading.
   addChat(
       +uuid,
       {
@@ -106,6 +114,7 @@ async function onConversation() {
 
   try {
     let lastText = ''
+    // Send request to the AI API and fetch stream response.
     const fetchChatAPIOnce = async () => {
       await fetchChatAPIProcess<Chat.ConversationResponse>({
         prompt: message,
