@@ -34,7 +34,7 @@ let api: ChatGPTAPI
   const TAOLI_CHATGLM_API_BASE_URL = process.env.TAOLI_CHATGLM_API_BASE_URL
 
   const options: ChatGPTAPIOptions = {
-    apiKey: null,
+    apiKey: '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',
     completionParams: { model },
     debug: !disableDebug,
   }

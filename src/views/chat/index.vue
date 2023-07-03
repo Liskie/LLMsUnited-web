@@ -225,7 +225,6 @@ async function onConversation() {
           },
         })
       } else if (chatStore.targetModel == 'taoli-chatglm') {
-        console.log('requesting taoli-chatglm')
         await fetchTaoliAPIProcess<Chat.ConversationResponse>({
           prompt: message,
           options,
@@ -240,6 +239,8 @@ async function onConversation() {
               chunk = responseText.substring(lastIndex)
             try {
               const data = JSON.parse(chunk)
+              // console.log(data['detail']['choices'][0]['finish_reason'])
+
               updateChat(
                   +uuid,
                   dataSources.value.length - 1,
@@ -253,6 +254,11 @@ async function onConversation() {
                     requestOptions: {prompt: message, options: {...options}},
                   },
               )
+
+              if (data.detail.choices[0].finish_reason === 'stop') {
+                // scrollToBottomIfAtBottom()
+                throw new Error('stop')
+              }
 
               if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
                 options.parentMessageId = data.id

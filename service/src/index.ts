@@ -1,8 +1,9 @@
 import express from 'express'
 import type { RequestProps } from './types'
 import type { ChatMessage } from './llm/chatgpt'
-import { chatConfig, chatReplyProcess as chatReplyProcessChatGPT, currentModel } from './llm/chatgpt'
+import { chatConfig as chatConfigChatGPT, chatReplyProcess as chatReplyProcessChatGPT, currentModel as currentModelChatGPT } from './llm/chatgpt'
 import { chatReplyProcess as chatReplyProcessCPM } from './llm/cpm-conv'
+import { chatReplyProcess as chatReplyProcessTaoli } from './llm/taoli-chatglm'
 import { auth } from './middleware/auth'
 import { limiter } from './middleware/limiter'
 import { isNotEmptyString } from './utils/is'
@@ -86,7 +87,7 @@ router.post('/chat-process/taoli-chatglm', [auth, limiter], async (req, res) => 
   try {
     const { prompt, options = {}, systemMessage, temperature, top_p } = req.body as RequestProps
     let firstChunk = true
-    await chatReplyProcessChatGPT({
+    await chatReplyProcessTaoli({
       message: prompt,
       lastContext: options,
       process: (chat: ChatMessage) => {
@@ -108,7 +109,7 @@ router.post('/chat-process/taoli-chatglm', [auth, limiter], async (req, res) => 
 
 router.post('/config', auth, async (req, res) => {
   try {
-    const response = await chatConfig()
+    const response = await chatConfigChatGPT()
     res.send(response)
   }
   catch (error) {
@@ -120,7 +121,7 @@ router.post('/session', async (req, res) => {
   try {
     const AUTH_SECRET_KEY = process.env.AUTH_SECRET_KEY
     const hasAuth = isNotEmptyString(AUTH_SECRET_KEY)
-    res.send({ status: 'Success', message: '', data: { auth: hasAuth, model: currentModel() } })
+    res.send({ status: 'Success', message: '', data: { auth: hasAuth, model: currentModelChatGPT() } })
   }
   catch (error) {
     res.send({ status: 'Fail', message: error.message, data: null })
