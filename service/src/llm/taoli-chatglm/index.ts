@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv'
-// import * as process from 'process'
+import * as process from 'process'
 import 'isomorphic-fetch'
 import type { ChatGPTAPIOptions, ChatMessage, SendMessageOptions } from 'chatgpt'
 import { ChatGPTAPI } from 'chatgpt'

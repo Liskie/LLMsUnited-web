@@ -43,7 +43,7 @@ let api: ChatGPTAPI | ChatGPTUnofficialProxyAPI
 
     // Temporary hack for local development
     // if (process.env.OPENAI_API_KEY !== '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')
-    process.env.OPENAI_API_KEY = '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'
+    process.env.OPENAI_API_KEY = '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'
 
     const options: ChatGPTAPIOptions = {
       apiKey: process.env.OPENAI_API_KEY,

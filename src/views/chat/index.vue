@@ -111,11 +111,10 @@ async function onConversation() {
   let options: Chat.ConversationRequest = {}
   const lastContext = conversationList.value[conversationList.value.length - 1]?.conversationOptions
 
-  console.log('dataSources:', dataSources.value)
-  for (const chatRound of dataSources.value) {
-    console.log(chatRound.inversion, chatRound.text)
-  }
-
+  // console.log('dataSources:', dataSources.value)
+  // for (const chatRound of dataSources.value) {
+  //   console.log(chatRound.inversion, chatRound.text)
+  // }
 
   if (lastContext && usingContext.value)
     options = {...lastContext}
@@ -255,10 +254,10 @@ async function onConversation() {
                   },
               )
 
-              if (data.detail.choices[0].finish_reason === 'stop') {
-                // scrollToBottomIfAtBottom()
-                throw new Error('stop')
-              }
+              // if (data.detail.choices[0].finish_reason === 'stop') {
+              //   // scrollToBottomIfAtBottom()
+              //   throw new Error('stop')
+              // }
 
               if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
                 options.parentMessageId = data.id
