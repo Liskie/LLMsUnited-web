@@ -139,7 +139,7 @@ async function onConversation() {
     // const
     // Send request to the AI API and fetch stream response.
     const fetchChatAPIOnce = async () => {
-      if (chatStore.targetModel === 'chatgpt') {
+      if (chatStore.targetModel === 'gpt-3.5-turbo') {
         await fetchChatAPIProcess<Chat.ConversationResponse>({
           prompt: message,
           options,
